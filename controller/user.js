@@ -4,64 +4,43 @@ import jwt from "jsonwebtoken"
 
 // REGISTER USER
 export const createStudents = async (req, res) => {
-    try {
-        let{ name, email, phoneNumber, password, country, state ,address}= req.body;
-        // 1️⃣ VALIDATIONS (required fields)
-        if (!name || !email || !phoneNumber || !password) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
+  try {
+    const { name, email, phoneNumber, password, country, state, address } = req.body;
 
-     
-        
-        // 2️⃣ CHECK IF EMAIL EXISTS
-        // ==============================
-        const existEmail = await cohortFour.findOne({ email });
-        if (existEmail) {
-            return res.status(400).json({ message: "Email already exists" });
-        }
-
-    
-      
-        
-
-      
-    
-
-        // ==============================
-        // 5️⃣ HASH PASSWORD
-        // ==============================
-        const salt = await bcrypt.genSalt(10);
-        const hashPassword = await bcrypt.hash(password, salt);
-
-        // ==============================
-        // 6️⃣ CREATE USER
-        // ==============================
-        const student = await cohortFour.create({
-            name,
-            email,
-            phoneNumber,
-            password: hashPassword,
-            country,
-            state,
-            address
-        });
-
-        return res.status(201).json({
-            message: "Student created successfully",
-            student,
-        });
-
-    } catch (error) {
-        console.error("Create Student Error:", error);
-        res.status(500).json({ message: "Server Error", error: error.message });
+    if (!name || !email || !phoneNumber || !password) {
+      return res.status(400).json({ message: "All required fields must be filled" });
     }
+
+    const existEmail = await cohortFour.findOne({ email });
+    if (existEmail) {
+      return res.status(409).json({ message: "Email already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const student = await cohortFour.create({
+      name,
+      email,
+      phoneNumber,
+      password: hashedPassword,
+      country: country || "",
+      state: state || "",
+      address: address || "",
+    });
+
+    res.status(201).json({ message: "Student created successfully", student });
+  } catch (error) {
+    console.error("CREATE STUDENT ERROR:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
 };
+
 
 // Get all users
  export const getAllStudents = async (req, res) => {
     try{
         const students = await cohortFour.find().select
-        ('-pasword')
+        ('-password')
         res.status(200).json(students)
     } catch (error) {
         res.status(500).json({message:"Server Error", error})
@@ -124,8 +103,9 @@ export const createStudents = async (req, res) => {
                 //upate only provided fields
             user.name = name || user.name
             user.email = email || user.email
-            user.phoneNumber = phoneNumber || user.password
-            user.password = password || user.country
+            user.phoneNumber = phoneNumber || user.phoneNumber
+            user.password = password || user.password
+            user.country = country || user.country
             user.state = state || user.state
             await user.save()
             res.status (200).json({
