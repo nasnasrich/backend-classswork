@@ -1,23 +1,29 @@
 import cohortFour from "../model/user.js";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
 
-// REGISTER USER
+/* =======================
+   REGISTER USER
+======================= */
 export const createStudents = async (req, res) => {
   try {
     const { name, email, phoneNumber, password, country, state, address } = req.body;
 
+    // 1️⃣ Validate required fields
     if (!name || !email || !phoneNumber || !password) {
       return res.status(400).json({ message: "All required fields must be filled" });
     }
 
+    // 2️⃣ Check if email already exists
     const existEmail = await cohortFour.findOne({ email });
     if (existEmail) {
       return res.status(409).json({ message: "Email already exists" });
     }
 
+    // 3️⃣ Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // 4️⃣ Create student
     const student = await cohortFour.create({
       name,
       email,
@@ -28,115 +34,129 @@ export const createStudents = async (req, res) => {
       address: address || "",
     });
 
-    res.status(201).json({ message: "Student created successfully", student });
+    return res.status(201).json({ message: "Student created successfully", student });
   } catch (error) {
     console.error("CREATE STUDENT ERROR:", error);
+    return res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
+/* =======================
+   GET ALL USERS
+======================= */
+export const getAllStudents = async (req, res) => {
+  try {
+    const students = await cohortFour.find().select("-password");
+    res.status(200).json(students);
+  } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
+/* =======================
+   LOGIN USER
+======================= */
+export const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-// Get all users
- export const getAllStudents = async (req, res) => {
-    try{
-        const students = await cohortFour.find().select
-        ('-password')
-        res.status(200).json(students)
-    } catch (error) {
-        res.status(500).json({message:"Server Error", error})
-    }
- }
+    // 1️⃣ Check if user exists
+    const user = await cohortFour.findOne({ email });
+    if (!user) return res.status(404).json({ message: "Email not registered" });
 
-     //LOGIN
+    // 2️⃣ Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ message: "Incorrect password" });
 
-     export const loginUser = async (req, res) =>{
-        const {email, password} = req.body
-      try{
-        //check user exist
-       const user = await cohortFour.findOne({email})
-    if(!user) return res.status (404).json({message:"Emaill Not Registere"})
+    // 3️⃣ Create JWT token
+    const token = jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: "1h" });
 
-        //compare password
-        const isMatch = await bcrypt.compare(password,user.password)
-        if(!isMatch) return res.status(400).json
-        ({message:"incorrect password"})
-         const token = jwt.sign({id:user._id}, process.env.SECRET_KEY, {expiresIn: '1hr'})
-        
-        res.status(200).json({message:"login successful",
-            token,
-            user:{
-            id:user._id,
-            name:user.name,
-            email:user.email,
-            phoneNumber:user.phoneNumber
-            }
-        })
-      } catch (error) {
-        res.status(500).json({message:error.message})
-      }
-    }
-      // get ueser by id
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        country: user.country,
+        state: user.state,
+        address: user.address,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
-      export const getUserById = async (req, res) =>{
+/* =======================
+   GET USER BY ID
+======================= */
+export const getUserById = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await cohortFour.findById(userId).select("-password");
 
-        const userId = req.params.id
-        try {
-           const user = await cohortFour.findById(userId).select
-           ("-password") 
-           if(!user) return res.status(404).json({message:"User Not Found"})
-        } catch (error) {
-           res.status(500).json({message:error.message}) 
-        }
-      }
-     
+    if (!user) return res.status(404).json({ message: "User Not Found" });
 
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
-      // update user
+/* =======================
+   UPDATE USER
+======================= */
+export const updateUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { name, email, phoneNumber, password, country, state, address } = req.body;
 
-      export const updateUser = async ( req, res)=> {
-         let userId = req.params.id
-         const {name, email, phoneNumber, password, country,
-            state} = req.body
-         try {
-            let user = await cohortFour.findById(userId)
-            if(!user) return res.status(404).json({message: "User Not Found"})
-                //upate only provided fields
-            user.name = name || user.name
-            user.email = email || user.email
-            user.phoneNumber = phoneNumber || user.phoneNumber
-            user.password = password || user.password
-            user.country = country || user.country
-            user.state = state || user.state
-            await user.save()
-            res.status (200).json({
+    let user = await cohortFour.findById(userId);
+    if (!user) return res.status(404).json({ message: "User Not Found" });
 
-                message: "User Successfully Updated",
-                user:{
-                    id:user._id,
-                    name:user.name,
-                    email:user.email,
-                    phoneNumber:user.phoneNumber,
-                    country:user.country,
-                    state:user.state
-                }
-            })
+    // Update only provided fields
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.phoneNumber = phoneNumber || user.phoneNumber;
+    user.password = password ? await bcrypt.hash(password, 10) : user.password;
+    user.country = country || user.country;
+    user.state = state || user.state;
+    user.address = address || user.address;
 
-         } catch (error) {
-            res.status(500).json({message:error.message})
-         }
-      }
+    await user.save();
 
-      //delete
+    res.status(200).json({
+      message: "User Successfully Updated",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        country: user.country,
+        state: user.state,
+        address: user.address,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
-      export const deleteUser = async (req, res) =>{
-        const userId = req.params.id
-        try {
-            const user = await cohortFour.findById(userId)
-            if (!user) return res.status (404).json({message: "user doesnt exist"})
-            await user.deleteOne()
-        res.status(200).json({message: "user deleted successfully"})
+/* =======================
+   DELETE USER
+======================= */
+export const deleteUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
 
-        } catch (error) {
-            res.status(500).json({message:error.message})
-        }
-      }
+    const user = await cohortFour.findById(userId);
+    if (!user) return res.status(404).json({ message: "User does not exist" });
+
+    await user.deleteOne();
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
