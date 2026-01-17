@@ -10,8 +10,8 @@ export const createStudents = async (req, res) => {
     const { name, email, phoneNumber, password, country, state, address } = req.body;
 
     // 1️⃣ Validate required fields
-    if (!name || !email || !phoneNumber || !password) {
-      return res.status(400).json({ message: "All required fields must be filled" });
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Name, email, and password are required" });
     }
 
     // 2️⃣ Check if email already exists
@@ -27,7 +27,7 @@ export const createStudents = async (req, res) => {
     const student = await cohortFour.create({
       name,
       email,
-      phoneNumber,
+      phoneNumber: phoneNumber || "",
       password: hashedPassword,
       country: country || "",
       state: state || "",
@@ -36,20 +36,13 @@ export const createStudents = async (req, res) => {
 
     return res.status(201).json({ message: "Student created successfully", student });
   } catch (error) {
+    // Handle duplicate key error separately
+    if (error.code === 11000) {
+      return res.status(409).json({ message: "Email already exists" });
+    }
+
     console.error("CREATE STUDENT ERROR:", error);
     return res.status(500).json({ message: "Server Error", error: error.message });
-  }
-};
-
-/* =======================
-   GET ALL USERS
-======================= */
-export const getAllStudents = async (req, res) => {
-  try {
-    const students = await cohortFour.find().select("-password");
-    res.status(200).json(students);
-  } catch (error) {
-    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
@@ -60,15 +53,16 @@ export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 1️⃣ Check if user exists
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
     const user = await cohortFour.findOne({ email });
     if (!user) return res.status(404).json({ message: "Email not registered" });
 
-    // 2️⃣ Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Incorrect password" });
 
-    // 3️⃣ Create JWT token
     const token = jwt.sign({ id: user._id }, process.env.SECRET_KEY, { expiresIn: "1h" });
 
     res.status(200).json({
@@ -85,7 +79,7 @@ export const loginUser = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
@@ -96,12 +90,22 @@ export const getUserById = async (req, res) => {
   try {
     const userId = req.params.id;
     const user = await cohortFour.findById(userId).select("-password");
-
-    if (!user) return res.status(404).json({ message: "User Not Found" });
-
+    if (!user) return res.status(404).json({ message: "User not found" });
     res.status(200).json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
+/* =======================
+   GET ALL USERS
+======================= */
+export const getAllStudents = async (req, res) => {
+  try {
+    const students = await cohortFour.find().select("-password");
+    res.status(200).json(students);
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
@@ -114,7 +118,7 @@ export const updateUser = async (req, res) => {
     const { name, email, phoneNumber, password, country, state, address } = req.body;
 
     let user = await cohortFour.findById(userId);
-    if (!user) return res.status(404).json({ message: "User Not Found" });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     // Update only provided fields
     user.name = name || user.name;
@@ -128,7 +132,7 @@ export const updateUser = async (req, res) => {
     await user.save();
 
     res.status(200).json({
-      message: "User Successfully Updated",
+      message: "User successfully updated",
       user: {
         id: user._id,
         name: user.name,
@@ -140,7 +144,7 @@ export const updateUser = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
@@ -150,13 +154,12 @@ export const updateUser = async (req, res) => {
 export const deleteUser = async (req, res) => {
   try {
     const userId = req.params.id;
-
     const user = await cohortFour.findById(userId);
     if (!user) return res.status(404).json({ message: "User does not exist" });
 
     await user.deleteOne();
     res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
