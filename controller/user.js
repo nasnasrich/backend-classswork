@@ -60,7 +60,7 @@ export const createStudents = async (req, res) => {
 // Get all users
  export const getAllStudents = async (req, res) => {
     try{
-        let students = await cohortFour.find().select
+        const students = await cohortFour.find().select
         ('-pasword')
         res.status(200).json(students)
     } catch (error) {
@@ -102,7 +102,7 @@ export const createStudents = async (req, res) => {
 
         const userId = req.params.id
         try {
-           const user = await student.findById(userId).select
+           const user = await cohortFour.findById(userId).select
            ("-password") 
            if(!user) return res.status(404).json({message:"User Not Found"})
         } catch (error) {
@@ -112,14 +112,14 @@ export const createStudents = async (req, res) => {
      
 
 
-      // update useer
+      // update user
 
       export const updateUser = async ( req, res)=> {
-         let useerId = req.params.id
+         let userId = req.params.id
          const {name, email, phoneNumber, password, country,
             state} = req.body
          try {
-            let user = await cohortFour.findById(useerId)
+            let user = await cohortFour.findById(userId)
             if(!user) return res.status(404).json({message: "User Not Found"})
                 //upate only provided fields
             user.name = name || user.name

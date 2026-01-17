@@ -23,10 +23,12 @@ app.use(express.json());
    }).catch(()=>{
     console.log('not connected')
    })*/
-  import dotenv from 'dotenv';
+import dotenv from 'dotenv';
 import express from 'express';
 import mongoose from 'mongoose';
 import userRoute from "./route/user.js";
+import ProductRouter from './route/product.js';
+
 
 // Load environment variables
 dotenv.config();
@@ -36,6 +38,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/users', userRoute);
+app.use('/api/product', ProductRouter)
 
 app.get('/', (req, res) => {
   res.send('Hello nas');
@@ -44,10 +47,7 @@ app.get('/', (req, res) => {
 // MongoDB connection and server start
 const PORT = process.env.PORT || 3000;
 
-mongoose.connect(process.env.MONGO_URL, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
+mongoose.connect(process.env.MONGO_URL, )
 .then(() => {
   console.log("MongoDB connection successful");
 
