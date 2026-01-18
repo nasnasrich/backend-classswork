@@ -1,16 +1,4 @@
-
-
-
-
-
-
-
-
-
-
-
-
-  /*import dotenv from 'dotenv';
+ /*import dotenv from 'dotenv';
 import mongoose from 'mongoose'
 import express from "express";
 import userRoute from "./route/user.js"
