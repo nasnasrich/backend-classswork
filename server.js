@@ -12,8 +12,8 @@ server.use(express.json());
 
 //  Enable CORS
 const allowedOrigins = [
-  "http://localhost:5173",
-  "https://your-vercel-frontend.vercel.app",
+"http://localhost:5173",
+"https://your-vercel-frontend.vercel.app",
 ];
 
 server.use(
@@ -47,7 +47,7 @@ mongoose
   .catch((err) => console.log(" MongoDB not connected", err));
 
 // FIXED PORT FOR RENDER + REDEPLOY LOG
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5173;
 
 server.listen(PORT, () => {
   console.log(" Backend redeployed at", new Date().toISOString());
