@@ -1,3 +1,4 @@
+// server.js
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import express from "express";
@@ -9,49 +10,46 @@ dotenv.config();
 
 const server = express();
 
-/* 🔴 CORS MUST COME BEFORE ROUTES */
+/* ------------------ CORS ------------------ */
 const allowedOrigins = [
-  "http://localhost:5173",
-  "https://backend-classswork-project-2.onrender.com"
+  "http://localhost:5173", // local frontend
+  "https://your-frontend-production-url.vercel.app" // live frontend
 ];
 
 server.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(null, false);
+      callback(new Error("Not allowed by CORS"));
     }
   },
-  credentials: true,
+  credentials: true, // allow cookies
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
-/* 🔴 THIS FIXES THE ERROR */
-server.options("*", cors());
-
+/* ------------------ Body Parser ------------------ */
 server.use(express.json());
 
-/* Routes */
+/* ------------------ Routes ------------------ */
 server.use("/api/users", userRoute);
 server.use("/api/product", productRoute);
 
-/* Health check */
+/* ------------------ Health Check ------------------ */
 server.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-/* MongoDB */
+/* ------------------ MongoDB Connection ------------------ */
 mongoose
   .connect(process.env.MONGO_URL)
   .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.log("MongoDB connection failed", err));
+  .catch((err) => console.log("MongoDB connection failed:", err));
 
-/* 🔴 DO NOT FORCE PORT */
-const PORT = process.env.PORT || 5000;
-
+/* ------------------ Server Listening ------------------ */
+const PORT = process.env.PORT || 5000; // dynamic port for Render
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
