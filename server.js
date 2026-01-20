@@ -9,15 +9,15 @@ dotenv.config();
 
 const server = express();
 
-/* ------------------ CORS ------------------ */
+/* Allowed origins */
 const allowedOrigins = [
-  "http://localhost:5173", // your local frontend
-  "https://your-frontend-production-url.vercel.app", // replace with live frontend URL
+  "http://localhost:5173",
+  "https://backend-classswork-project-2.onrender.com"
 ];
 
+/* CORS middleware */
 server.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (Postman, mobile apps)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -29,26 +29,32 @@ server.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
-/* ------------------ Body Parser ------------------ */
+/* Body parser */
 server.use(express.json());
 
-/* ------------------ Routes ------------------ */
+/* Routes */
 server.use("/api/users", userRoute);
 server.use("/api/product", productRoute);
 
-/* ------------------ Health Check ------------------ */
+/* Health check */
 server.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-/* ------------------ MongoDB Connection ------------------ */
+/* Temporary test route to check logs */
+server.get("/test", (req, res) => {
+  console.log("Test route accessed!");
+  res.send("Test route works!");
+});
+
+/* MongoDB connection */
 mongoose
   .connect(process.env.MONGO_URL)
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.log("MongoDB connection failed:", err));
 
-/* ------------------ Server Listening ------------------ */
-const PORT = process.env.PORT || 5000; // Render provides PORT automatically
+/* Server listening */
+const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
